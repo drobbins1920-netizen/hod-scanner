@@ -15,16 +15,16 @@ TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 Aggressive HOD Momentum Scanner")
-st.caption("Catches almost every new High of Day")
+st.caption("Pure market scan — catches stocks hitting new High of Day with ≥10% gain")
 
 # Sidebar Filters
 with st.sidebar:
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=100.0)
-    min_gain = st.number_input("Min Gain %", value=2.0)
+    min_gain = st.number_input("Min Gain %", value=10.0)
     max_float = st.number_input("Max Float (M)", value=100.0)
-    rvol_threshold = st.number_input("Min RVOL", value=1.2)
+    rvol_threshold = st.number_input("Min RVOL", value=1.5)
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
@@ -83,30 +83,31 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
-            # Use Finnhub for better coverage
-            symbols = finnhub_client.stock_symbols(exchange='US')
+            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
+            
+            # Multiple endpoints for better coverage
+            endpoints = [
+                "https://api.webull.com/quote/tickerRank/get?rankType=1",
+                "https://api.webull.com/quote/tickerRank/get?rankType=1&time=pre"
+            ]
             movers = []
-            for s in symbols[:2000]:
+            for url in endpoints:
                 try:
-                    quote = finnhub_client.quote(s['symbol'])
-                    change_pct = quote.get('dp', 0)
-                    if change_pct >= min_gain:
-                        movers.append({
-                            'symbol': s['symbol'],
-                            'changeRatio': change_pct / 100,
-                            'close': quote.get('c', 0),
-                            'volume': quote.get('v', 0)
-                        })
+                    r = requests.get(url, headers=headers)
+                    if r.ok:
+                        movers.extend(r.json() if isinstance(r.json(), list) else [])
                 except:
-                    continue
+                    pass
             
             data = []
-            for m in movers:
-                symbol = m['symbol']
-                price = m['close']
-                change_pct = m['changeRatio'] * 100
-                volume = m['volume']
-                avg_vol = volume * 0.5
+            for m in movers[:1000]:
+                symbol = m.get('symbol')
+                if not symbol:
+                    continue
+                price = float(m.get('close', m.get('lastPrice', 0)))
+                change_pct = float(m.get('changeRatio', 0)) * 100
+                volume = int(m.get('volume', 0))
+                avg_vol = int(m.get('avgVolume', volume * 0.3 or 1))
                 
                 if not (min_price <= price <= max_price and change_pct >= min_gain):
                     continue
@@ -162,4 +163,4 @@ while True:
         except Exception as e:
             st.error(f"Error: {e}")
     
-    time.sleep(5)
+    time.sleep(3)
