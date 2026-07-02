@@ -75,8 +75,10 @@ while True:
         st.write(f"Last update: {datetime.now().strftime('%H:%M:%S')}")
         
         try:
-            wb = webull()
-            movers = wb.get_top_gainers()
+            # Webull API call using your key
+            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
+            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
+            movers = response.json() if response.ok else []
             
             data = []
             for m in movers[:200]:
@@ -125,6 +127,6 @@ while True:
             else:
                 st.info("No strong setups right now...")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error: {e}. Check API keys.")
     
     time.sleep(3)
