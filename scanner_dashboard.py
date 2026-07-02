@@ -14,15 +14,15 @@ TELEGRAM_TOKEN = "8970166305:AAGyTrj85fBEjsLvywUtZ79wgHX7gN29Efo"
 TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
-st.title("🚀 Aggressive HOD Momentum Scanner")
-st.caption("Pure market scan — catches stocks hitting new High of Day with ≥10% gain")
+st.title("🚀 Aggressive Pre-Market HOD Scanner")
+st.caption("Optimized for pre-market HOD moves")
 
 # Sidebar Filters
 with st.sidebar:
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=100.0)
-    min_gain = st.number_input("Min Gain %", value=10.0)
+    min_gain = st.number_input("Min Gain %", value=3.0)
     max_float = st.number_input("Max Float (M)", value=100.0)
     rvol_threshold = st.number_input("Min RVOL", value=1.5)
 
@@ -84,20 +84,8 @@ while True:
         
         try:
             headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            
-            # Multiple endpoints for better coverage
-            endpoints = [
-                "https://api.webull.com/quote/tickerRank/get?rankType=1",
-                "https://api.webull.com/quote/tickerRank/get?rankType=1&time=pre"
-            ]
-            movers = []
-            for url in endpoints:
-                try:
-                    r = requests.get(url, headers=headers)
-                    if r.ok:
-                        movers.extend(r.json() if isinstance(r.json(), list) else [])
-                except:
-                    pass
+            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
+            movers = response.json() if response.ok else []
             
             data = []
             for m in movers[:1000]:
