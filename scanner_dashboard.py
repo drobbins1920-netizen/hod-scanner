@@ -17,12 +17,6 @@ st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 High of Day Momentum Scanner")
 st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 
-# Initialize session state
-if 'scan_history' not in st.session_state:
-    st.session_state.scan_history = []
-if 'full_log' not in st.session_state:
-    st.session_state.full_log = []
-
 # Sidebar Filters
 with st.sidebar:
     st.header("Mode")
@@ -76,6 +70,11 @@ def get_news_emoji_and_headline(symbol):
         return "⚪", headline
     except:
         return "⚪", ""
+
+if 'scan_history' not in st.session_state:
+    st.session_state.scan_history = []
+if 'full_log' not in st.session_state:
+    st.session_state.full_log = []
 
 placeholder = st.empty()
 last_alert = None
