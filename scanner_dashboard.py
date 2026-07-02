@@ -21,6 +21,7 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 with st.sidebar:
     st.header("Mode")
     scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
+    use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
@@ -70,11 +71,6 @@ def get_news_emoji_and_headline(symbol):
         return "⚪", headline
     except:
         return "⚪", ""
-
-if 'live_data' not in st.session_state:
-    st.session_state.live_data = []
-if 'full_log' not in st.session_state:
-    st.session_state.full_log = []
 
 placeholder = st.empty()
 last_alert = None
@@ -130,14 +126,11 @@ while True:
                 }
                 data.append(entry)
                 st.session_state.full_log.append(entry)
-            
-            # Update live data
-            st.session_state.live_data = data + st.session_state.live_data
-            st.session_state.live_data = st.session_state.live_data[:50]  # Rolling 50
+                st.session_state.scan_history.append(entry)
             
             # Live Scanner Tab
             with tab1:
-                df_live = pd.DataFrame(st.session_state.live_data)
+                df_live = pd.DataFrame(st.session_state.scan_history)
                 if not df_live.empty:
                     df_live = df_live.sort_values(by='gain%', ascending=False)
                     st.dataframe(df_live, use_container_width=True)
@@ -159,6 +152,9 @@ while True:
                     st.dataframe(df_log, use_container_width=True)
                 else:
                     st.info("No alerts yet...")
+            
+            # Keep rolling 50 for live view
+            st.session_state.scan_history = st.session_state.scan_history[-50:]
             
         except Exception as e:
             st.error(f"Error: {e}")
