@@ -21,6 +21,7 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 with st.sidebar:
     st.header("Mode")
     scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
+    use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
@@ -71,11 +72,6 @@ def get_news_emoji_and_headline(symbol):
     except:
         return "⚪", ""
 
-if 'scan_history' not in st.session_state:
-    st.session_state.scan_history = []
-if 'performance' not in st.session_state:
-    st.session_state.performance = []
-
 placeholder = st.empty()
 last_alert = None
 
@@ -116,8 +112,7 @@ while True:
                 
                 emoji, headline = get_news_emoji_and_headline(symbol)
                 
-                entry = {
-                    'time': datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S'),
+                data.append({
                     'ticker': f"[{symbol}](https://app.webull.com/quote/{symbol})",
                     'price': round(price, 2),
                     'gain%': round(change_pct, 2),
@@ -125,15 +120,7 @@ while True:
                     'float_m': round(float_shares / 1_000_000, 2),
                     'news': emoji,
                     'headline': headline
-                }
-                data.append(entry)
-                st.session_state.scan_history.append(entry)
-            
-            # Performance Stats
-            if st.session_state.scan_history:
-                df_hist = pd.DataFrame(st.session_state.scan_history)
-                avg_gain = df_hist['gain%'].mean()
-                st.metric("Average Gain of Alerts", f"{avg_gain:.1f}%")
+                })
             
             df = pd.DataFrame(data)
             if not df.empty:
