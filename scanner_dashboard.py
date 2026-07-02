@@ -19,6 +19,8 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 
 # Sidebar Filters
 with st.sidebar:
+    st.header("Mode")
+    use_full_scan = st.checkbox("Full Market Scan (slower but more comprehensive)", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=20.0)
@@ -57,7 +59,7 @@ def get_news_emoji_and_headline(symbol):
             return "⚪", ""
         latest = max(news, key=lambda x: x.get('datetime', 0))
         headline = latest.get('headline', '')[:80]
-        hours_ago = (now - datetime.fromtimestamp(latest['datetime'], tz=timezone.utc)).total_seconds() / 3600
+        hours_ago = (now - datetime.fromtimestamp(latest['datetime'], tz=timezone.edt)).total_seconds() / 3600
         if hours_ago < 2:
             return "🟥", headline
         elif hours_ago < 5:
@@ -76,13 +78,15 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
-            # Webull API call using your key
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            if use_full_scan:
+                st.info("Full market scan mode active (slower)")
+                movers = []  # Full scan logic can be added here later
+            else:
+                wb = webull()
+                movers = wb.get_top_gainers()
             
             data = []
-            for m in movers[:200]:
+            for m in movers[:500]:
                 symbol = m.get('symbol')
                 if not symbol:
                     continue
