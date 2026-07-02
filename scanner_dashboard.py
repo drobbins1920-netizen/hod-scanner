@@ -15,16 +15,16 @@ TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 Aggressive HOD Momentum Scanner")
-st.caption("Catches almost every new High of Day - Pre, Regular, After Hours")
+st.caption("Catches almost every new High of Day")
 
 # Sidebar Filters
 with st.sidebar:
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
-    max_price = st.number_input("Max Price", value=50.0)
-    min_gain = st.number_input("Min Gain %", value=3.0)
-    max_float = st.number_input("Max Float (M)", value=50.0)
-    rvol_threshold = st.number_input("Min RVOL", value=1.5)
+    max_price = st.number_input("Max Price", value=100.0)
+    min_gain = st.number_input("Min Gain %", value=2.0)
+    max_float = st.number_input("Max Float (M)", value=100.0)
+    rvol_threshold = st.number_input("Min RVOL", value=1.2)
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
