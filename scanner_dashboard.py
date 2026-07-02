@@ -145,8 +145,7 @@ while True:
                         st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                         send_telegram_alert(alert_msg)
                         last_alert = data[0]['ticker']
-                else:
-                    st.info("No strong setups right now...")
+                # No message when no data - just blank
             
             # Historical Log Tab
             with tab2:
@@ -154,8 +153,7 @@ while True:
                 if not df_log.empty:
                     df_log = df_log.sort_values(by='time', ascending=False)
                     st.dataframe(df_log, use_container_width=True)
-                else:
-                    st.info("No alerts yet...")
+                # No message when no data
             
             # Keep rolling 50 for live view
             st.session_state.scan_history = st.session_state.scan_history[-50:]
