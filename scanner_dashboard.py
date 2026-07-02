@@ -84,8 +84,16 @@ while True:
         
         try:
             headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            # Multiple endpoints for better coverage
+            endpoints = [
+                "https://api.webull.com/quote/tickerRank/get?rankType=1",
+                "https://api.webull.com/quote/tickerRank/get?rankType=1&time=pre"
+            ]
+            movers = []
+            for url in endpoints:
+                response = requests.get(url, headers=headers)
+                if response.ok:
+                    movers.extend(response.json() if isinstance(response.json(), list) else [])
             
             data = []
             for m in movers[:1000]:
