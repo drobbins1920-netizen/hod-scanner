@@ -20,7 +20,7 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 # Sidebar Filters
 with st.sidebar:
     st.header("Mode")
-    use_full_scan = st.checkbox("Full Market Scan (slower but more comprehensive)", value=False)
+    use_full_scan = st.checkbox("Full Market Scan (slower)", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=20.0)
@@ -79,11 +79,13 @@ while True:
         
         try:
             if use_full_scan:
-                st.info("Full market scan mode active (slower)")
-                movers = []  # Full scan logic can be added here later
+                st.info("Full market scan mode (slower)")
+                movers = []  # Full scan can be expanded later
             else:
-                wb = webull()
-                movers = wb.get_top_gainers()
+                # Webull top gainers using your key
+                headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
+                response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
+                movers = response.json() if response.ok else []
             
             data = []
             for m in movers[:500]:
