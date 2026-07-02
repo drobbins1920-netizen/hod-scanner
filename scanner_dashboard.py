@@ -17,11 +17,16 @@ st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 High of Day Momentum Scanner")
 st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 
+# Initialize session state
+if 'scan_history' not in st.session_state:
+    st.session_state.scan_history = []
+if 'full_log' not in st.session_state:
+    st.session_state.full_log = []
+
 # Sidebar Filters
 with st.sidebar:
     st.header("Mode")
     scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
-    use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
@@ -83,7 +88,7 @@ while True:
         st.write(f"Mode: **{scan_mode}** {'(Extended Hours)' if extended_hours else ''}")
         
         try:
-            if use_full_scan:
+            if scan_mode == "Full Market Scan (Comprehensive)":
                 st.info("Full market scan mode active (slower)")
                 movers = []  # Expand later
             else:
