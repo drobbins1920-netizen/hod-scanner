@@ -15,19 +15,16 @@ TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 High of Day Momentum Scanner")
-st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
+st.caption("Catches every HOD move - Pre, Regular, After Hours")
 
 # Sidebar Filters
 with st.sidebar:
-    st.header("Mode")
-    scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
-    extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=30.0)
-    min_gain = st.number_input("Min Gain %", value=7.0)
-    max_float = st.number_input("Max Float (M)", value=15.0)
-    rvol_threshold = st.number_input("Min RVOL", value=3.0)
+    min_gain = st.number_input("Min Gain %", value=5.0)
+    max_float = st.number_input("Max Float (M)", value=20.0)
+    rvol_threshold = st.number_input("Min RVOL", value=2.5)
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
@@ -84,16 +81,11 @@ tab1, tab2 = st.tabs(["Live Scanner", "Historical Log"])
 while True:
     with placeholder.container():
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
-        st.write(f"Mode: **{scan_mode}** {'(Extended Hours)' if extended_hours else ''}")
         
         try:
-            if scan_mode == "Full Market Scan (Comprehensive)":
-                st.info("Full market scan mode active (slower)")
-                movers = []  # Expand later
-            else:
-                headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-                response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-                movers = response.json() if response.ok else []
+            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
+            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
+            movers = response.json() if response.ok else []
             
             data = []
             for m in movers[:500]:
@@ -137,7 +129,7 @@ while True:
                 df_live = pd.DataFrame(st.session_state.scan_history)
                 if not df_live.empty:
                     df_live = df_live.sort_values(by='gain%', ascending=False)
-                    st.dataframe(df_live, use_container_width=True, hide_index=True)
+                    st.dataframe(df_live, use_container_width=True)
                     
                     if data and (last_alert is None or last_alert != data[0]['ticker']):
                         alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
@@ -145,15 +137,13 @@ while True:
                         st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                         send_telegram_alert(alert_msg)
                         last_alert = data[0]['ticker']
-                # Blank when no data
             
             # Historical Log Tab
             with tab2:
                 df_log = pd.DataFrame(st.session_state.full_log)
                 if not df_log.empty:
                     df_log = df_log.sort_values(by='time', ascending=False)
-                    st.dataframe(df_log, use_container_width=True, hide_index=True)
-                # Blank when no data
+                    st.dataframe(df_log, use_container_width=True)
             
             # Keep rolling 50 for live view
             st.session_state.scan_history = st.session_state.scan_history[-50:]
