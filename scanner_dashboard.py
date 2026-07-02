@@ -14,17 +14,20 @@ TELEGRAM_TOKEN = "8970166305:AAGyTrj85fBEjsLvywUtZ79wgHX7gN29Efo"
 TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
-st.title("🚀 Aggressive Pre-Market HOD Scanner")
-st.caption("Optimized for pre-market HOD moves")
+st.title("🚀 Aggressive HOD Momentum Scanner")
+st.caption("Catches almost every new High of Day")
 
-# Sidebar Filters
+# Sidebar Filters + Force Check
 with st.sidebar:
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=100.0)
-    min_gain = st.number_input("Min Gain %", value=3.0)
+    min_gain = st.number_input("Min Gain %", value=2.0)
     max_float = st.number_input("Max Float (M)", value=100.0)
-    rvol_threshold = st.number_input("Min RVOL", value=1.5)
+    rvol_threshold = st.number_input("Min RVOL", value=1.2)
+    
+    st.header("Force Check Symbols")
+    force_symbols = st.text_area("Add symbols to force check (one per line)", value="CWD\nCETX")
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
@@ -83,9 +86,25 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
+            # Webull scan
             headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
             response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
             movers = response.json() if response.ok else []
+            
+            # Force check symbols
+            force_list = [s.strip().upper() for s in force_symbols.split("\n") if s.strip()]
+            for sym in force_list:
+                try:
+                    q = requests.get(f"https://api.webull.com/quote/ticker/get?symbol={sym}", headers=headers).json()
+                    if q:
+                        movers.append({
+                            'symbol': sym,
+                            'changeRatio': q.get('changeRatio', 0),
+                            'close': q.get('close', 0),
+                            'volume': q.get('volume', 0)
+                        })
+                except:
+                    pass
             
             data = []
             for m in movers[:1000]:
