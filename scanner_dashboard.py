@@ -71,6 +71,9 @@ def get_news_emoji_and_headline(symbol):
     except:
         return "⚪", ""
 
+if 'scan_history' not in st.session_state:
+    st.session_state.scan_history = []
+
 placeholder = st.empty()
 last_alert = None
 
@@ -82,14 +85,13 @@ while True:
         try:
             if use_full_scan:
                 st.info("Full market scan mode active (slower)")
-                movers = []  # Full scan logic can be expanded later
+                movers = []  # Expand later
             else:
-                # Top Gainers
                 headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
                 response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
                 movers = response.json() if response.ok else []
             
-            data = []
+            new_data = []
             for m in movers[:500]:
                 symbol = m.get('symbol')
                 if not symbol:
@@ -112,7 +114,8 @@ while True:
                 
                 emoji, headline = get_news_emoji_and_headline(symbol)
                 
-                data.append({
+                new_data.append({
+                    'time': datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S'),
                     'ticker': f"[{symbol}](https://app.webull.com/quote/{symbol})",
                     'price': round(price, 2),
                     'gain%': round(change_pct, 2),
@@ -122,17 +125,20 @@ while True:
                     'headline': headline
                 })
             
-            df = pd.DataFrame(data)
+            # Add new data to history
+            st.session_state.scan_history = new_data + st.session_state.scan_history
+            st.session_state.scan_history = st.session_state.scan_history[:50]  # Keep only 50 slots
+            
+            df = pd.DataFrame(st.session_state.scan_history)
             if not df.empty:
-                df = df.sort_values(by='gain%', ascending=False)
                 st.dataframe(df, use_container_width=True)
                 
-                if data and (last_alert is None or last_alert != data[0]['ticker']):
-                    alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
+                if new_data and (last_alert is None or last_alert != new_data[0]['ticker']):
+                    alert_msg = f"🚨 NEW HOD: {new_data[0]['ticker']} +{new_data[0]['gain%']}% RVOL: {new_data[0]['rvol']}"
                     st.success(alert_msg)
                     st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                     send_telegram_alert(alert_msg)
-                    last_alert = data[0]['ticker']
+                    last_alert = new_data[0]['ticker']
             else:
                 st.info("No strong setups right now...")
         except Exception as e:
