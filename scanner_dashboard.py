@@ -137,7 +137,7 @@ while True:
                 df_live = pd.DataFrame(st.session_state.scan_history)
                 if not df_live.empty:
                     df_live = df_live.sort_values(by='gain%', ascending=False)
-                    st.dataframe(df_live, use_container_width=True)
+                    st.dataframe(df_live, use_container_width=True, hide_index=True)
                     
                     if data and (last_alert is None or last_alert != data[0]['ticker']):
                         alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
@@ -145,15 +145,15 @@ while True:
                         st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                         send_telegram_alert(alert_msg)
                         last_alert = data[0]['ticker']
-                # No message when no data - just blank
+                # Blank when no data
             
             # Historical Log Tab
             with tab2:
                 df_log = pd.DataFrame(st.session_state.full_log)
                 if not df_log.empty:
                     df_log = df_log.sort_values(by='time', ascending=False)
-                    st.dataframe(df_log, use_container_width=True)
-                # No message when no data
+                    st.dataframe(df_log, use_container_width=True, hide_index=True)
+                # Blank when no data
             
             # Keep rolling 50 for live view
             st.session_state.scan_history = st.session_state.scan_history[-50:]
