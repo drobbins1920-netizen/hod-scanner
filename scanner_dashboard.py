@@ -162,4 +162,4 @@ while True:
         except Exception as e:
             st.error(f"Error: {e}")
     
-    time.sleep(3)
+    time.sleep(5)
