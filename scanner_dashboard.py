@@ -72,13 +72,11 @@ last_alert = None
 
 while True:
     with placeholder.container():
-        st.write(f"Last update: {datetime.now().strftime('%H:%M:%S')}")
+        st.write(f"Last update: {datetime.now(timezone.utc).astimezone().strftime('%H:%M:%S')}")
         
         try:
-            # Webull API call
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            wb = webull()
+            movers = wb.get_top_gainers()
             
             data = []
             for m in movers[:200]:
