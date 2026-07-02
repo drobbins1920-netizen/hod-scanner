@@ -49,7 +49,7 @@ def get_float(symbol):
 
 def get_news_emoji_and_headline(symbol):
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.edt)
         from_str = (now - timedelta(hours=12)).strftime("%Y-%m-%d")
         to_str = now.strftime("%Y-%m-%d")
         news = finnhub_client.company_news(symbol, _from=from_str, to=to_str)
@@ -76,8 +76,10 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
-            wb = webull()
-            movers = wb.get_top_gainers()
+            # Webull API call using your key
+            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
+            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
+            movers = response.json() if response.ok else []
             
             data = []
             for m in movers[:200]:
