@@ -83,27 +83,30 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            # Multiple endpoints for better coverage
-            endpoints = [
-                "https://api.webull.com/quote/tickerRank/get?rankType=1",
-                "https://api.webull.com/quote/tickerRank/get?rankType=1&time=pre"
-            ]
+            # Use Finnhub for better HOD detection
+            gainers = finnhub_client.stock_symbols(exchange='US')
             movers = []
-            for url in endpoints:
-                response = requests.get(url, headers=headers)
-                if response.ok:
-                    movers.extend(response.json() if isinstance(response.json(), list) else [])
+            for g in gainers[:1000]:
+                try:
+                    quote = finnhub_client.quote(g['symbol'])
+                    change_pct = quote.get('dp', 0)
+                    if change_pct >= 2.0:
+                        movers.append({
+                            'symbol': g['symbol'],
+                            'changeRatio': change_pct / 100,
+                            'close': quote.get('c', 0),
+                            'volume': quote.get('v', 0)
+                        })
+                except:
+                    continue
             
             data = []
-            for m in movers[:1000]:
-                symbol = m.get('symbol')
-                if not symbol:
-                    continue
-                price = float(m.get('close', m.get('lastPrice', 0)))
-                change_pct = float(m.get('changeRatio', 0)) * 100
-                volume = int(m.get('volume', 0))
-                avg_vol = int(m.get('avgVolume', volume * 0.3 or 1))
+            for m in movers:
+                symbol = m['symbol']
+                price = m['close']
+                change_pct = m['changeRatio'] * 100
+                volume = m['volume']
+                avg_vol = volume * 0.5  # Approximate
                 
                 if not (min_price <= price <= max_price and change_pct >= min_gain):
                     continue
