@@ -14,17 +14,17 @@ TELEGRAM_TOKEN = "8970166305:AAGyTrj85fBEjsLvywUtZ79wgHX7gN29Efo"
 TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
-st.title("🚀 High of Day Momentum Scanner")
-st.caption("Catches every HOD move - Pre, Regular, After Hours")
+st.title("🚀 Aggressive HOD Momentum Scanner")
+st.caption("Catches almost every new High of Day - Pre, Regular, After Hours")
 
 # Sidebar Filters
 with st.sidebar:
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
-    max_price = st.number_input("Max Price", value=30.0)
-    min_gain = st.number_input("Min Gain %", value=5.0)
-    max_float = st.number_input("Max Float (M)", value=20.0)
-    rvol_threshold = st.number_input("Min RVOL", value=2.5)
+    max_price = st.number_input("Max Price", value=50.0)
+    min_gain = st.number_input("Min Gain %", value=3.0)
+    max_float = st.number_input("Max Float (M)", value=50.0)
+    rvol_threshold = st.number_input("Min RVOL", value=1.5)
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
@@ -88,7 +88,7 @@ while True:
             movers = response.json() if response.ok else []
             
             data = []
-            for m in movers[:500]:
+            for m in movers[:1000]:
                 symbol = m.get('symbol')
                 if not symbol:
                     continue
