@@ -83,19 +83,30 @@ while True:
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
         
         try:
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            # Use Finnhub for better coverage
+            symbols = finnhub_client.stock_symbols(exchange='US')
+            movers = []
+            for s in symbols[:2000]:
+                try:
+                    quote = finnhub_client.quote(s['symbol'])
+                    change_pct = quote.get('dp', 0)
+                    if change_pct >= min_gain:
+                        movers.append({
+                            'symbol': s['symbol'],
+                            'changeRatio': change_pct / 100,
+                            'close': quote.get('c', 0),
+                            'volume': quote.get('v', 0)
+                        })
+                except:
+                    continue
             
             data = []
-            for m in movers[:1000]:
-                symbol = m.get('symbol')
-                if not symbol:
-                    continue
-                price = float(m.get('close', m.get('lastPrice', 0)))
-                change_pct = float(m.get('changeRatio', 0)) * 100
-                volume = int(m.get('volume', 0))
-                avg_vol = int(m.get('avgVolume', volume * 0.3 or 1))
+            for m in movers:
+                symbol = m['symbol']
+                price = m['close']
+                change_pct = m['changeRatio'] * 100
+                volume = m['volume']
+                avg_vol = volume * 0.5
                 
                 if not (min_price <= price <= max_price and change_pct >= min_gain):
                     continue
