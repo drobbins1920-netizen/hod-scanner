@@ -21,7 +21,6 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 with st.sidebar:
     st.header("Mode")
     scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
-    use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
@@ -72,8 +71,15 @@ def get_news_emoji_and_headline(symbol):
     except:
         return "⚪", ""
 
+if 'scan_history' not in st.session_state:
+    st.session_state.scan_history = []
+if 'full_log' not in st.session_state:
+    st.session_state.full_log = []
+
 placeholder = st.empty()
 last_alert = None
+
+tab1, tab2 = st.tabs(["Live Scanner", "Historical Log"])
 
 while True:
     with placeholder.container():
@@ -112,7 +118,8 @@ while True:
                 
                 emoji, headline = get_news_emoji_and_headline(symbol)
                 
-                data.append({
+                entry = {
+                    'time': datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S'),
                     'ticker': f"[{symbol}](https://app.webull.com/quote/{symbol})",
                     'price': round(price, 2),
                     'gain%': round(change_pct, 2),
@@ -120,21 +127,39 @@ while True:
                     'float_m': round(float_shares / 1_000_000, 2),
                     'news': emoji,
                     'headline': headline
-                })
+                }
+                data.append(entry)
+                st.session_state.full_log.append(entry)
+                st.session_state.scan_history.append(entry)
             
-            df = pd.DataFrame(data)
-            if not df.empty:
-                df = df.sort_values(by='gain%', ascending=False)
-                st.dataframe(df, use_container_width=True)
-                
-                if data and (last_alert is None or last_alert != data[0]['ticker']):
-                    alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
-                    st.success(alert_msg)
-                    st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
-                    send_telegram_alert(alert_msg)
-                    last_alert = data[0]['ticker']
-            else:
-                st.info("No strong setups right now...")
+            # Live Scanner Tab
+            with tab1:
+                df_live = pd.DataFrame(data)
+                if not df_live.empty:
+                    df_live = df_live.sort_values(by='gain%', ascending=False)
+                    st.dataframe(df_live, use_container_width=True)
+                    
+                    if data and (last_alert is None or last_alert != data[0]['ticker']):
+                        alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
+                        st.success(alert_msg)
+                        st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
+                        send_telegram_alert(alert_msg)
+                        last_alert = data[0]['ticker']
+                else:
+                    st.info("No strong setups right now...")
+            
+            # Historical Log Tab
+            with tab2:
+                df_log = pd.DataFrame(st.session_state.full_log)
+                if not df_log.empty:
+                    df_log = df_log.sort_values(by='time', ascending=False)
+                    st.dataframe(df_log, use_container_width=True)
+                else:
+                    st.info("No alerts yet...")
+            
+            # Keep rolling 50 for live view
+            st.session_state.scan_history = st.session_state.scan_history[-50:]
+            
         except Exception as e:
             st.error(f"Error: {e}")
     
