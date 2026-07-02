@@ -6,15 +6,15 @@ import finnhub
 import pandas as pd
 
 # ================== YOUR KEYS ==================
-FINNHUB_API_KEY = "YOUR_FINNHUB_KEY_HERE"
-FMP_API_KEY = "YOUR_FMP_KEY_HERE"
+FINNHUB_API_KEY = "d8kvl29r01qut1f87070d8kvl29r01qut1f8707g"
+FMP_API_KEY = "Q36YW4o2v1XwkQHhj5zVxbI3C6vDjgGC"
 WEBULL_API_KEY = "1269f73b49b78f8702a3ad84752b9718"
 TELEGRAM_TOKEN = "8970166305:AAGyTrj85fBEjsLvywUtZ79wgHX7gN29Efo"
 TELEGRAM_CHAT_ID = "7680581613"
 
 st.set_page_config(page_title="HOD Momentum Scanner", layout="wide")
 st.title("🚀 High of Day Momentum Scanner")
-st.caption("Auto-refreshes every 3 seconds + Telegram alerts")
+st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 
 # Sidebar Filters
 with st.sidebar:
@@ -75,10 +75,8 @@ while True:
         st.write(f"Last update: {datetime.now().strftime('%H:%M:%S')}")
         
         try:
-            # Webull API call
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            wb = webull()
+            movers = wb.get_top_gainers()
             
             data = []
             for m in movers[:200]:
@@ -117,10 +115,11 @@ while True:
                 df = df.sort_values(by='gain%', ascending=False)
                 st.dataframe(df, use_container_width=True)
                 
-                # Big Alert + Telegram
+                # Big Alert + Sound + Telegram
                 if data and (last_alert is None or last_alert != data[0]['ticker']):
                     alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
                     st.success(alert_msg)
+                    st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                     send_telegram_alert(alert_msg)
                     last_alert = data[0]['ticker']
             else:
