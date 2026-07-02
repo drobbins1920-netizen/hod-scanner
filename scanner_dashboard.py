@@ -24,9 +24,9 @@ with st.sidebar:
     use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
-    max_price = st.number_input("Max Price", value=20.0)
-    min_gain = st.number_input("Min Gain %", value=10.0)
-    max_float = st.number_input("Max Float (M)", value=10.0)
+    max_price = st.number_input("Max Price", value=30.0)
+    min_gain = st.number_input("Min Gain %", value=7.0)
+    max_float = st.number_input("Max Float (M)", value=15.0)
     rvol_threshold = st.number_input("Min RVOL", value=3.0)
 
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
@@ -71,9 +71,6 @@ def get_news_emoji_and_headline(symbol):
     except:
         return "⚪", ""
 
-if 'scan_history' not in st.session_state:
-    st.session_state.scan_history = []
-
 placeholder = st.empty()
 last_alert = None
 
@@ -91,7 +88,7 @@ while True:
                 response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
                 movers = response.json() if response.ok else []
             
-            new_data = []
+            data = []
             for m in movers[:500]:
                 symbol = m.get('symbol')
                 if not symbol:
@@ -114,8 +111,7 @@ while True:
                 
                 emoji, headline = get_news_emoji_and_headline(symbol)
                 
-                new_data.append({
-                    'time': datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S'),
+                data.append({
                     'ticker': f"[{symbol}](https://app.webull.com/quote/{symbol})",
                     'price': round(price, 2),
                     'gain%': round(change_pct, 2),
@@ -125,20 +121,17 @@ while True:
                     'headline': headline
                 })
             
-            # Add new data to history
-            st.session_state.scan_history = new_data + st.session_state.scan_history
-            st.session_state.scan_history = st.session_state.scan_history[:50]  # Keep only 50 slots
-            
-            df = pd.DataFrame(st.session_state.scan_history)
+            df = pd.DataFrame(data)
             if not df.empty:
+                df = df.sort_values(by='gain%', ascending=False)
                 st.dataframe(df, use_container_width=True)
                 
-                if new_data and (last_alert is None or last_alert != new_data[0]['ticker']):
-                    alert_msg = f"🚨 NEW HOD: {new_data[0]['ticker']} +{new_data[0]['gain%']}% RVOL: {new_data[0]['rvol']}"
+                if data and (last_alert is None or last_alert != data[0]['ticker']):
+                    alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
                     st.success(alert_msg)
                     st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", autoplay=True)
                     send_telegram_alert(alert_msg)
-                    last_alert = new_data[0]['ticker']
+                    last_alert = data[0]['ticker']
             else:
                 st.info("No strong setups right now...")
         except Exception as e:
