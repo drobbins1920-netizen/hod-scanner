@@ -21,7 +21,7 @@ st.caption("Auto-refreshes every 3 seconds + Sound + Telegram alerts")
 with st.sidebar:
     st.header("Mode")
     scan_mode = st.radio("Scan Mode", ["Top Gainers (Fast)", "Full Market Scan (Comprehensive)"])
-    extended_hours = st.checkbox("Pre-Market / After-Hours Mode", value=False)
+    use_full_scan = scan_mode == "Full Market Scan (Comprehensive)"
     st.header("Filters")
     min_price = st.number_input("Min Price", value=1.0)
     max_price = st.number_input("Max Price", value=30.0)
@@ -77,7 +77,7 @@ last_alert = None
 while True:
     with placeholder.container():
         st.write(f"Last update: {datetime.now(ZoneInfo('America/New_York')).strftime('%H:%M:%S')}")
-        st.write(f"Mode: **{scan_mode}** {'(Extended Hours)' if extended_hours else ''}")
+        st.write(f"Mode: **{scan_mode}**")
         
         try:
             if use_full_scan:
