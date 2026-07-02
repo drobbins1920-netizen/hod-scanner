@@ -46,26 +46,26 @@ def get_float(symbol):
     except:
         return 0
 
-def get_news_emoji(symbol):
+def get_news_emoji_and_headline(symbol):
     try:
         now = datetime.now(timezone.utc)
         from_str = (now - timedelta(hours=12)).strftime("%Y-%m-%d")
         to_str = now.strftime("%Y-%m-%d")
         news = finnhub_client.company_news(symbol, _from=from_str, to=to_str)
         if not news:
-            return "⚪"
+            return "⚪", ""
         latest = max(news, key=lambda x: x.get('datetime', 0))
-        news_time = datetime.fromtimestamp(latest['datetime'], tz=timezone.utc)
-        hours_ago = (now - news_time).total_seconds() / 3600
+        headline = latest.get('headline', '')[:80]
+        hours_ago = (now - datetime.fromtimestamp(latest['datetime'], tz=timezone.utc)).total_seconds() / 3600
         if hours_ago < 2:
-            return "🟥"
+            return "🟥", headline
         elif hours_ago < 5:
-            return "🟧"
+            return "🟧", headline
         elif hours_ago < 12:
-            return "🟩"
-        return "⚪"
+            return "🟩", headline
+        return "⚪", headline
     except:
-        return "⚪"
+        return "⚪", ""
 
 placeholder = st.empty()
 last_alert = None
@@ -75,10 +75,8 @@ while True:
         st.write(f"Last update: {datetime.now().strftime('%H:%M:%S')}")
         
         try:
-            # Webull API call using your key
-            headers = {"Authorization": f"Bearer {WEBULL_API_KEY}"}
-            response = requests.get("https://api.webull.com/quote/tickerRank/get?rankType=1", headers=headers)
-            movers = response.json() if response.ok else []
+            wb = webull()
+            movers = wb.get_top_gainers()
             
             data = []
             for m in movers[:200]:
@@ -101,7 +99,7 @@ while True:
                 if rvol < rvol_threshold:
                     continue
                 
-                emoji = get_news_emoji(symbol)
+                emoji, headline = get_news_emoji_and_headline(symbol)
                 
                 data.append({
                     'ticker': symbol,
@@ -109,7 +107,8 @@ while True:
                     'gain%': round(change_pct, 2),
                     'rvol': rvol,
                     'float_m': round(float_shares / 1_000_000, 2),
-                    'news': emoji
+                    'news': emoji,
+                    'headline': headline
                 })
             
             df = pd.DataFrame(data)
@@ -117,7 +116,6 @@ while True:
                 df = df.sort_values(by='gain%', ascending=False)
                 st.dataframe(df, use_container_width=True)
                 
-                # Big Alert + Sound + Telegram
                 if data and (last_alert is None or last_alert != data[0]['ticker']):
                     alert_msg = f"🚨 NEW HOD: {data[0]['ticker']} +{data[0]['gain%']}% RVOL: {data[0]['rvol']}"
                     st.success(alert_msg)
@@ -127,6 +125,6 @@ while True:
             else:
                 st.info("No strong setups right now...")
         except Exception as e:
-            st.error(f"Error: {e}. Check API keys.")
+            st.error(f"Error: {e}")
     
     time.sleep(3)
